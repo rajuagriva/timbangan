@@ -1258,7 +1258,6 @@ Gunakan Bahasa Indonesia formal dan ringkas dengan poin-poin.`;
             tbsPrice={tbsPrice}
             setTbsPrice={setTbsPrice}
             aiInsight={aiInsight}
-            setAiInsight={setAiInsight}
             newAnnouncementContent={newAnnouncementContent}
             setNewAnnouncementContent={setNewAnnouncementContent}
             handleGenerateInsight={handleGenerateInsight}

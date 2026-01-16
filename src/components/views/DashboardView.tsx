@@ -38,7 +38,6 @@ interface DashboardViewProps {
     tbsPrice: number;
     setTbsPrice: (val: number) => void;
     aiInsight: string;
-    setAiInsight: (val: string) => void;
     newAnnouncementContent: string;
     setNewAnnouncementContent: (val: string) => void;
     // Actions
@@ -84,7 +83,7 @@ const COLORS = ['#10b981', '#3b82f6', '#f59e0b', '#8b5cf6', '#ec4899', '#06b6d4'
 const DashboardView: React.FC<DashboardViewProps> = ({
     stats, chartData, sparklineData, filteredData, loadingData, theme, isDarkMode, isKioskMode,
     searchQuery, setSearchQuery, searchCategory, setSearchCategory, tbsPrice, setTbsPrice,
-    aiInsight, setAiInsight,
+    aiInsight,
     setSelectedTicket, setSelectedLocation,
     formatNumber, formatCurrency, formatIndoDate,
     customStartDate, setCustomStartDate, customEndDate, setCustomEndDate, setTimeFilter,
