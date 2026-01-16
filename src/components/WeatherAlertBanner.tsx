@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
-import { CloudRain, Cloud, Sun, CloudSun, Droplets, Lightbulb, X, AlertTriangle } from 'lucide-react';
-import type { WeatherAlert, WeatherSeverity, WeatherLog } from '../types';
+import { CloudRain, Cloud, Sun, CloudSun, Droplets, Lightbulb, X, AlertTriangle, Thermometer, Wind } from 'lucide-react';
+import type { WeatherAlert, WeatherSeverity, HourlyForecast } from '../types';
 import './WeatherAlertBanner.css';
 
 interface WeatherAlertBannerProps {
@@ -9,9 +9,10 @@ interface WeatherAlertBannerProps {
 
 // Get weather icon based on condition
 const getWeatherIcon = (condition: string, size: number = 28) => {
-    if (condition.includes('Hujan Deras')) return <CloudRain size={size} />;
-    if (condition.includes('Hujan')) return <CloudSun size={size} />;
-    if (condition === 'Berawan') return <Cloud size={size} />;
+    const lowerCondition = condition.toLowerCase();
+    if (lowerCondition.includes('hujan deras')) return <CloudRain size={size} />;
+    if (lowerCondition.includes('hujan')) return <CloudSun size={size} />;
+    if (lowerCondition.includes('berawan')) return <Cloud size={size} />;
     return <Sun size={size} />;
 };
 
@@ -79,67 +80,70 @@ export const WeatherAlertBanner: React.FC<WeatherAlertBannerProps> = ({ alert })
     );
 };
 
-// Forecast Widget Component
+// Forecast Widget Component - Updated for 10-Hour Forecast
 interface ForecastWidgetProps {
-    weatherLogs: WeatherLog[];
+    hourlyForecasts: HourlyForecast[];
     theme: any;
 }
 
-export const ForecastWidget: React.FC<ForecastWidgetProps> = ({ weatherLogs, theme }) => {
-    // Get next 3 days forecast
-    const today = new Date();
-    const forecastDays: WeatherLog[] = [];
+// Get severity from weather description
+const getSeverityFromWeather = (weatherDesc: string): WeatherSeverity => {
+    const desc = weatherDesc.toLowerCase();
+    if (desc.includes('hujan deras') || desc.includes('lebat')) return 'heavy_rain';
+    if (desc.includes('hujan')) return 'light_rain';
+    if (desc.includes('berawan')) return 'cloudy';
+    return 'clear';
+};
 
-    for (let i = 1; i <= 3; i++) {
-        const date = new Date(today);
-        date.setDate(today.getDate() + i);
-        const dateStr = date.toISOString().split('T')[0];
-
-        const weather = weatherLogs.find(w => w.date === dateStr);
-        if (weather) {
-            forecastDays.push(weather);
-        } else {
-            // Mock data if not found
-            forecastDays.push({
-                date: dateStr,
-                rainfall: Math.floor(Math.random() * 30),
-                condition: 'Cerah'
-            });
-        }
-    }
-
-    const getSeverity = (rainfall: number, condition: string): WeatherSeverity => {
-        if (rainfall >= 50 || condition === 'Hujan Deras') return 'heavy_rain';
-        if (rainfall >= 20 || condition === 'Hujan Ringan') return 'light_rain';
-        if (condition === 'Berawan') return 'cloudy';
-        return 'clear';
-    };
-
-    const formatDate = (dateStr: string) => {
+export const ForecastWidget: React.FC<ForecastWidgetProps> = ({ hourlyForecasts, theme }) => {
+    const formatHour = (dateStr: string) => {
         const d = new Date(dateStr);
-        return d.toLocaleDateString('id-ID', { weekday: 'short', day: 'numeric' });
+        return d.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit', hour12: false });
     };
+
+    // Take first 10 hours (or less if not available)
+    const displayForecasts = hourlyForecasts.slice(0, 10);
 
     return (
         <div className={`p-4 rounded-xl border ${theme.card} ${theme.border}`}>
             <h4 className={`text-xs font-bold uppercase tracking-wider mb-3 flex items-center gap-2 ${theme.subtext}`}>
-                <CloudRain size={14} /> Prakiraan 3 Hari
+                <CloudRain size={14} /> Prakiraan 10 Jam
             </h4>
-            <div className="forecast-widget">
-                {forecastDays.map((day, idx) => {
-                    const severity = getSeverity(day.rainfall, day.condition);
-                    return (
-                        <div key={idx} className={`forecast-day severity-${severity}`}>
-                            <p className="forecast-date">{formatDate(day.date)}</p>
-                            <div className="forecast-icon">
-                                {getWeatherIcon(day.condition, 24)}
+            <div className="forecast-widget forecast-widget-hourly">
+                {displayForecasts.length === 0 ? (
+                    <p className="text-xs text-slate-400 italic">Memuat data cuaca...</p>
+                ) : (
+                    displayForecasts.map((forecast, idx) => {
+                        const severity = getSeverityFromWeather(forecast.weather_desc);
+                        return (
+                            <div key={idx} className={`forecast-hour severity-${severity}`}>
+                                <p className="forecast-time">{formatHour(forecast.local_datetime)}</p>
+                                <div className="forecast-icon">
+                                    {getWeatherIcon(forecast.weather_desc, 20)}
+                                </div>
+                                <div className="forecast-details">
+                                    <span className="forecast-temp">
+                                        <Thermometer size={10} />
+                                        {forecast.temperature}°C
+                                    </span>
+                                    <span className="forecast-wind">
+                                        <Wind size={10} />
+                                        {forecast.wind_speed}km/h
+                                    </span>
+                                </div>
+                                <p className="forecast-condition-mini" title={forecast.weather_desc}>
+                                    {forecast.weather_desc.length > 10
+                                        ? forecast.weather_desc.substring(0, 10) + '...'
+                                        : forecast.weather_desc}
+                                </p>
                             </div>
-                            <p className="forecast-condition">{day.condition}</p>
-                            <p className="forecast-rainfall">{day.rainfall}mm</p>
-                        </div>
-                    );
-                })}
+                        );
+                    })
+                )}
             </div>
+            <p className={`text-[10px] mt-2 ${theme.subtext} text-center opacity-70`}>
+                Sumber: BMKG • Update setiap jam
+            </p>
         </div>
     );
 };
@@ -171,17 +175,26 @@ export const getWeatherRecommendations = (severity: WeatherSeverity): string[] =
     }
 };
 
-export const createWeatherAlert = (weatherLog: WeatherLog | undefined): WeatherAlert | null => {
-    if (!weatherLog) return null;
+// Create weather alert from hourly forecast (for the next hour)
+export const createWeatherAlertFromHourly = (forecasts: HourlyForecast[]): WeatherAlert | null => {
+    if (!forecasts || forecasts.length === 0) return null;
 
-    const severity = getWeatherSeverity(weatherLog.rainfall, weatherLog.condition);
+    // Use the first forecast (next hour)
+    const nextHour = forecasts[0];
+    const severity = getSeverityFromWeather(nextHour.weather_desc);
     const recommendations = getWeatherRecommendations(severity);
+
+    // Estimate rainfall from weather code (BMKG codes: 0=clear, 3=cloudy, 61=light rain, 63=moderate rain, 95=storm)
+    let estimatedRainfall = 0;
+    if (nextHour.weather_code >= 95) estimatedRainfall = 50;
+    else if (nextHour.weather_code >= 63) estimatedRainfall = 30;
+    else if (nextHour.weather_code >= 61) estimatedRainfall = 15;
 
     return {
         severity,
-        rainfall: weatherLog.rainfall,
-        condition: weatherLog.condition,
-        date: weatherLog.date,
+        rainfall: estimatedRainfall,
+        condition: nextHour.weather_desc,
+        date: nextHour.local_datetime,
         recommendations
     };
 };

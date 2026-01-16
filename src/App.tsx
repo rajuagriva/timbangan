@@ -12,9 +12,9 @@ import {
 import html2canvas from 'html2canvas';
 import jsPDF from 'jspdf';
 
-import type { Ticket, Announcement, DashboardStats, VehicleStat, YardTruck, YardStatus, WeatherLog, AfdelingBenchmark, BenchmarkTrendData, HarvestEntry, IncomingTruck } from './types';
+import type { Ticket, Announcement, DashboardStats, VehicleStat, YardTruck, YardStatus, WeatherLog, AfdelingBenchmark, BenchmarkTrendData, HarvestEntry, IncomingTruck, HourlyForecast } from './types';
 import { generateGeminiInsight } from './services/geminiService';
-import { fetchTickets, fetchAnnouncements, addAnnouncement, deleteAnnouncement, uploadTicketsBulk, fetchWeatherLogs } from './services/dataService';
+import { fetchTickets, fetchAnnouncements, addAnnouncement, deleteAnnouncement, uploadTicketsBulk, fetchWeatherLogs, fetchHourlyForecasts, triggerWeatherSync } from './services/dataService';
 import { supabase, isSupabaseConfigured } from './supabaseClient';
 
 import TicketModal from './components/TicketModal';
@@ -57,6 +57,7 @@ export default function App() {
   const [weatherLogs, setWeatherLogs] = useState<WeatherLog[]>([]); // Feature: Weather Correlation
   const [isGeneratingPDF, setIsGeneratingPDF] = useState(false); // Feature: PDF Report
   const [incomingTrucks, setIncomingTrucks] = useState<IncomingTruck[]>([]); // Feature #37: ETA Tracker
+  const [hourlyForecasts, setHourlyForecasts] = useState<HourlyForecast[]>([]); // Feature #38 Enhanced: BMKG Hourly Forecast
 
   // Search & Filter
   const [searchQuery, setSearchQuery] = useState('');
@@ -118,11 +119,28 @@ export default function App() {
       ];
       setIncomingTrucks(mockIncomingTrucks);
 
+      // Feature #38 Enhanced: Fetch hourly forecasts from BMKG cache
+      const hourly = await fetchHourlyForecasts();
+      setHourlyForecasts(hourly);
+
       setLastUpdated(new Date());
     } catch (error: any) {
       console.error("Failed to load data:", error.message || error);
     } finally {
       setLoadingData(false);
+    }
+  };
+
+  // Feature #38: Weather Sync Polling (every 60 seconds)
+  const loadWeatherData = async () => {
+    try {
+      // Trigger sync, then fetch updated data
+      await triggerWeatherSync();
+      const hourly = await fetchHourlyForecasts();
+      setHourlyForecasts(hourly);
+      console.log("Weather data synced:", hourly.length, "forecasts");
+    } catch (error) {
+      console.error("Weather sync failed:", error);
     }
   };
 
@@ -137,6 +155,11 @@ export default function App() {
         loadInitialData();
       }, 30000);
     }
+
+    // Feature #38: Weather Sync Polling (every 60 seconds)
+    const weatherInterval = setInterval(() => {
+      loadWeatherData();
+    }, 60000); // 1 minute
 
     // --- REALTIME SUBSCRIPTION ---
     // Mengaktifkan update otomatis jika database berubah
@@ -164,11 +187,13 @@ export default function App() {
       return () => {
         supabase.removeChannel(channel);
         if (kioskInterval) clearInterval(kioskInterval);
+        clearInterval(weatherInterval);
       };
     }
 
     return () => {
       if (kioskInterval) clearInterval(kioskInterval);
+      clearInterval(weatherInterval);
     }
   }, [isKioskMode]);
 
@@ -1256,7 +1281,7 @@ Gunakan Bahasa Indonesia formal dan ringkas dengan poin-poin.`;
             timeFilter={timeFilter}
             setTimeFilter={setTimeFilter}
             incomingTrucks={incomingTrucks}
-            weatherLogs={weatherLogs}
+            hourlyForecasts={hourlyForecasts}
           />
         );
       case 'armada':

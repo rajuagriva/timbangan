@@ -63,6 +63,24 @@ export interface WeatherLog {
   condition: 'Cerah' | 'Berawan' | 'Hujan Ringan' | 'Hujan Deras';
 }
 
+// Feature #38 Enhanced: Hourly forecast from BMKG API
+export interface HourlyForecast {
+  id: string;
+  local_datetime: string;       // ISO format: "2026-01-16T20:00:00+07:00"
+  utc_datetime: string;
+  temperature: number;          // °C
+  humidity: number;             // %
+  weather_code: number;         // BMKG weather code
+  weather_desc: string;         // "Berawan", "Hujan Ringan", dll
+  weather_desc_en: string;      // English description
+  wind_speed: number;           // km/jam
+  wind_direction: string;       // "SW", "NE", etc.
+  cloud_cover: number;          // %
+  visibility_text: string;      // "> 10 km", "< 5 km", etc.
+  analysis_date: string;        // When BMKG produced this forecast
+  updated_at: string;           // When we last synced this
+}
+
 // Period Comparison Types
 export interface PeriodRange {
   startDate: string; // YYYY-MM-DD

@@ -1,5 +1,5 @@
 import { supabase, isSupabaseConfigured } from '../supabaseClient';
-import type { Ticket, Announcement, WeatherLog, Location, LocationHistory, LocationFormData } from '../types';
+import type { Ticket, Announcement, WeatherLog, Location, LocationHistory, LocationFormData, HourlyForecast } from '../types';
 
 // Data Mock dari CSV user
 const MOCK_CSV_DATA: Ticket[] = [
@@ -442,3 +442,99 @@ export const fetchLocationHistory = async (locationId: string): Promise<Location
   return data || [];
 };
 
+// =============================================================================
+// BMKG WEATHER FORECAST FUNCTIONS
+// =============================================================================
+
+// Generate mock hourly forecasts for demo mode
+const generateMockHourlyForecasts = (): HourlyForecast[] => {
+  const now = new Date();
+  const forecasts: HourlyForecast[] = [];
+
+  const conditions = [
+    { desc: 'Berawan', desc_en: 'Mostly Cloudy', code: 3 },
+    { desc: 'Hujan Ringan', desc_en: 'Light Rain', code: 61 },
+    { desc: 'Cerah', desc_en: 'Sunny', code: 0 },
+  ];
+
+  for (let i = 1; i <= 10; i++) {
+    const forecastTime = new Date(now);
+    forecastTime.setHours(now.getHours() + i, 0, 0, 0);
+
+    const condition = conditions[i % conditions.length];
+    const hash = forecastTime.getHours() + forecastTime.getDate();
+
+    forecasts.push({
+      id: `mock-${i}`,
+      local_datetime: forecastTime.toISOString(),
+      utc_datetime: forecastTime.toISOString(),
+      temperature: 23 + (hash % 6),
+      humidity: 75 + (hash % 20),
+      weather_code: condition.code,
+      weather_desc: condition.desc,
+      weather_desc_en: condition.desc_en,
+      wind_speed: 5 + (hash % 10),
+      wind_direction: 'SW',
+      cloud_cover: 60 + (hash % 40),
+      visibility_text: '> 10 km',
+      analysis_date: now.toISOString(),
+      updated_at: now.toISOString(),
+    });
+  }
+
+  return forecasts;
+};
+
+// Fetch next 10 hours of weather forecasts from Supabase cache
+export const fetchHourlyForecasts = async (): Promise<HourlyForecast[]> => {
+  if (!isSupabaseConfigured()) {
+    console.warn("Mode Offline: Menggunakan data cuaca mock.");
+    await new Promise(resolve => setTimeout(resolve, 300));
+    return generateMockHourlyForecasts();
+  }
+
+  const now = new Date();
+
+  const { data, error } = await supabase
+    .from('weather_forecasts')
+    .select('*')
+    .gte('local_datetime', now.toISOString())
+    .order('local_datetime', { ascending: true })
+    .limit(10);
+
+  if (error) {
+    console.error("Error fetching weather forecasts:", error);
+    // Fallback to mock data on error
+    return generateMockHourlyForecasts();
+  }
+
+  // If no data in cache, return mock
+  if (!data || data.length === 0) {
+    console.warn("No weather data in cache, using mock data");
+    return generateMockHourlyForecasts();
+  }
+
+  return data;
+};
+
+// Trigger BMKG weather sync via Edge Function
+export const triggerWeatherSync = async (): Promise<{ success: boolean; message?: string }> => {
+  if (!isSupabaseConfigured()) {
+    return { success: false, message: 'Database not configured' };
+  }
+
+  try {
+    const { data, error } = await supabase.functions.invoke('sync-bmkg-weather');
+
+    if (error) {
+      console.error("Weather sync error:", error);
+      return { success: false, message: error.message };
+    }
+
+    console.log("Weather sync result:", data);
+    return { success: true, message: data?.message || 'Synced successfully' };
+  } catch (err: any) {
+    console.error("Weather sync failed:", err);
+    return { success: false, message: err.message };
+  }
+};

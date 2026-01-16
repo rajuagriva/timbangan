@@ -6,14 +6,15 @@ import {
 
 import {
     Truck, Scale, FileSpreadsheet,
-    Sparkles, X, Search, Trophy, Activity,
+    Sparkles, Search, Trophy, Activity,
     Timer, ChevronDown, TrendingUp, Calendar
 } from 'lucide-react';
 import { useEventAnnotations, AnnotationFilter, AnnotationMarkerLabel, EVENT_TYPES } from '../charts/ChartAnnotations';
 import KPICard from '../KPICard';
 import IncomingTrucksPanel from '../IncomingTrucksPanel';
-import { WeatherAlertBanner, ForecastWidget, createWeatherAlert } from '../WeatherAlertBanner';
-import type { Ticket, DashboardStats, Announcement, IncomingTruck, WeatherLog } from '../../types';
+import InsightModal from '../InsightModal';
+import { WeatherAlertBanner, ForecastWidget, createWeatherAlertFromHourly } from '../WeatherAlertBanner';
+import type { Ticket, DashboardStats, Announcement, IncomingTruck, HourlyForecast } from '../../types';
 
 interface DashboardViewProps {
     stats: DashboardStats;
@@ -65,8 +66,8 @@ interface DashboardViewProps {
     setTimeFilter: (f: any) => void;
     // Feature #37: ETA Tracker
     incomingTrucks: IncomingTruck[];
-    // Feature #38: Weather Alert
-    weatherLogs: WeatherLog[];
+    // Feature #38: Weather Alert - Now using hourly forecasts
+    hourlyForecasts: HourlyForecast[];
 }
 
 const ChartSkeleton = () => (
@@ -88,13 +89,21 @@ const DashboardView: React.FC<DashboardViewProps> = ({
     formatNumber, formatCurrency, formatIndoDate,
     customStartDate, setCustomStartDate, customEndDate, setCustomEndDate, setTimeFilter,
     incomingTrucks,
-    weatherLogs
+    hourlyForecasts
 }) => {
-    // Feature #38: Weather Alert
-    const today = new Date().toISOString().split('T')[0];
-    const todayWeather = weatherLogs.find(w => w.date === today);
-    const weatherAlert = createWeatherAlert(todayWeather);
+    // Feature #38: Weather Alert - Using hourly forecasts
+    const weatherAlert = createWeatherAlertFromHourly(hourlyForecasts);
     const { selectedTypes, toggleType, filteredEvents } = useEventAnnotations();
+
+    // Insight Modal State
+    const [isInsightModalOpen, setIsInsightModalOpen] = React.useState(false);
+
+    // Auto-open modal when insight is generated
+    React.useEffect(() => {
+        if (aiInsight && !isKioskMode) {
+            setIsInsightModalOpen(true);
+        }
+    }, [aiInsight, isKioskMode]);
 
     return (
         <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
@@ -175,29 +184,35 @@ const DashboardView: React.FC<DashboardViewProps> = ({
                     </div>
                 </div>
 
-                {/* Feature #38: 3-Day Forecast Widget */}
-                <div className="lg:col-span-1">
-                    <ForecastWidget weatherLogs={weatherLogs} theme={theme} />
+                {/* Feature #38: 10-Hour Forecast Widget */}
+                {/* Feature #38: 10-Hour Forecast Widget */}
+                <div className="lg:col-span-3">
+                    <ForecastWidget hourlyForecasts={hourlyForecasts} theme={theme} />
                 </div>
             </div>
 
             {/* Feature #38: WEATHER ALERT BANNER */}
             <WeatherAlertBanner alert={weatherAlert} />
 
-            {/* AI INSIGHT */}
+            {/* AI INSIGHT BUTTON & MODAL */}
             {aiInsight && !isKioskMode && (
-                <div className="bg-gradient-to-r from-indigo-600 to-purple-600 p-6 rounded-2xl shadow-lg text-white relative animate-in fade-in slide-in-from-top-2">
-                    <div className="flex gap-4 items-start relative z-10">
-                        <div className="bg-white/20 p-2 rounded-lg"><Sparkles size={24} /></div>
-                        <div className="flex-1">
-                            <h3 className="font-bold text-lg mb-1">Analisis Gemini AI</h3>
-                            <p className="opacity-90 text-sm leading-relaxed">{aiInsight}</p>
-                        </div>
-                        <button onClick={() => setAiInsight('')} className="hover:bg-white/20 p-1 rounded"><X size={18} /></button>
-                    </div>
-                    <Sparkles className="absolute -bottom-4 -right-4 text-white/10 w-32 h-32" />
+                <div className="flex justify-end mb-4">
+                    <button
+                        onClick={() => setIsInsightModalOpen(true)}
+                        className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-indigo-600 to-purple-600 text-white rounded-lg shadow-md hover:shadow-lg hover:scale-105 transition-all text-sm font-bold animate-in fade-in"
+                    >
+                        <Sparkles size={16} className="text-yellow-300" />
+                        Lihat Analisis AI
+                    </button>
                 </div>
             )}
+
+            <InsightModal
+                isOpen={isInsightModalOpen}
+                onClose={() => setIsInsightModalOpen(false)}
+                content={aiInsight}
+                theme={theme}
+            />
 
             {/* Feature #37: INCOMING TRUCKS ETA TRACKER */}
             {incomingTrucks.length > 0 && (

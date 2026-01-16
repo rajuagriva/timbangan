@@ -1,6 +1,7 @@
 import { GoogleGenAI } from "@google/genai";
 
-const apiKey = (typeof process !== 'undefined' && process.env && process.env.API_KEY) || '';
+// Use import.meta.env for Vite
+const apiKey = import.meta.env.VITE_API_KEY || '';
 const ai = new GoogleGenAI({ apiKey });
 
 export const generateGeminiInsight = async (prompt: string): Promise<string> => {
@@ -11,7 +12,7 @@ export const generateGeminiInsight = async (prompt: string): Promise<string> => 
       model: 'gemini-3-flash-preview',
       contents: prompt,
     });
-    
+
     return response.text || "Tidak ada respons dari AI.";
   } catch (error) {
     console.error("Gemini Error:", error);
