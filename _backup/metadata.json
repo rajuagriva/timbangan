@@ -1,0 +1,5 @@
+{
+  "name": "DataCBS Dashboard - Supabase Edition",
+  "description": "A comprehensive palm oil logistics dashboard integrated with Supabase for real-time data persistence and Google Gemini for AI analytics.",
+  "requestFramePermissions": []
+}

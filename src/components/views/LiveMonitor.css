@@ -1,0 +1,111 @@
+/* Cyberpunk / NOC Room Theme */
+.live-monitor-container {
+  background-color: #030712; /* Gray-950/Black */
+  color: #e2e8f0;
+  min-height: 100vh;
+  width: 100vw;
+  font-family: 'JetBrains Mono', monospace; /* Tech font */
+  overflow-x: hidden;
+  position: relative;
+}
+
+/* scanline effect */
+.live-monitor-container::before {
+  content: " ";
+  display: block;
+  position: absolute;
+  top: 0;
+  left: 0;
+  bottom: 0;
+  right: 0;
+  background: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.25) 50%), linear-gradient(90deg, rgba(255, 0, 0, 0.06), rgba(0, 255, 0, 0.02), rgba(0, 0, 255, 0.06));
+  z-index: 2;
+  background-size: 100% 2px, 3px 100%;
+  pointer-events: none;
+}
+
+.live-card {
+  background: rgba(17, 24, 39, 0.7); /* translucent slate-900 */
+  border: 1px solid rgba(59, 130, 246, 0.3); /* slight blue border */
+  box-shadow: 0 0 15px rgba(59, 130, 246, 0.1);
+  backdrop-filter: blur(10px);
+  position: relative;
+  overflow: hidden;
+}
+
+/* Corner Accents */
+.live-card::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  right: 0;
+  width: 10px;
+  height: 10px;
+  border-top: 2px solid #00f2ff;
+  border-right: 2px solid #00f2ff;
+}
+
+.live-card::before {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  width: 10px;
+  height: 10px;
+  border-bottom: 2px solid #00f2ff;
+  border-left: 2px solid #00f2ff;
+}
+
+.neon-text {
+  color: #00f2ff;
+  text-shadow: 0 0 5px rgba(0, 242, 255, 0.7);
+}
+
+.neon-red {
+  color: #ff0055;
+  text-shadow: 0 0 5px rgba(255, 0, 85, 0.7);
+}
+
+.neon-amber {
+  color: #ffaa00;
+  text-shadow: 0 0 5px rgba(255, 170, 0, 0.7);
+}
+
+.live-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: 1.5rem;
+}
+
+.live-header {
+  border-bottom: 1px solid rgba(0, 242, 255, 0.3);
+  background: rgba(0, 20, 40, 0.8);
+}
+
+/* Blinking dot for live status */
+.blink-dot {
+  width: 10px;
+  height: 10px;
+  background-color: #ef4444;
+  border-radius: 50%;
+  display: inline-block;
+  animation: blink 2s infinite;
+  box-shadow: 0 0 10px #ef4444;
+}
+
+@keyframes blink {
+  0% { opacity: 1; }
+  50% { opacity: 0.3; }
+  100% { opacity: 1; }
+}
+
+/* Pulse animation for values */
+.pulse-value {
+  animation: pulse-text 4s infinite;
+}
+
+@keyframes pulse-text {
+  0% { opacity: 1; }
+  50% { opacity: 0.7; }
+  100% { opacity: 1; }
+}

@@ -1,0 +1,348 @@
+/* YardCanvas3D Styles - Isometric Yard Visualization */
+
+.yard-canvas-3d {
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
+    border-radius: 16px;
+    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3);
+    overflow: visible;
+}
+
+/* Truck Asset Styles */
+.truck-asset {
+    transition: all 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+    filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.3));
+}
+
+.truck-asset:hover {
+    transform: scale(1.15);
+    filter: drop-shadow(0 6px 12px rgba(0, 0, 0, 0.5));
+    z-index: 100;
+}
+
+.truck-asset:active {
+    transform: scale(1.05);
+    cursor: grabbing;
+}
+
+.truck-asset.dragging {
+    opacity: 0.5;
+    filter: drop-shadow(0 0 8px rgba(59, 130, 246, 0.8));
+}
+
+/* Truck Body Animation */
+.truck-body {
+    animation: gentle-float 3s ease-in-out infinite;
+}
+
+@keyframes gentle-float {
+
+    0%,
+    100% {
+        transform: translateY(0);
+    }
+
+    50% {
+        transform: translateY(-2px);
+    }
+}
+
+.truck-asset:hover .truck-body {
+    animation: none;
+}
+
+/* Truck Shadow */
+.truck-shadow {
+    transition: all 0.5s ease;
+}
+
+.truck-asset:hover .truck-shadow {
+    rx: 32;
+    ry: 10;
+    opacity: 0.4;
+}
+
+/* Loading Indicator Pulse */
+.pulse-dot {
+    animation: pulse-scale 1.5s ease-in-out infinite;
+}
+
+@keyframes pulse-scale {
+
+    0%,
+    100% {
+        transform: scale(1);
+    }
+
+    50% {
+        transform: scale(1.3);
+    }
+}
+
+/* Zone Styles */
+.zone-gate,
+.zone-weighbridge,
+.zone-queue,
+.zone-ramp,
+.zone-exit {
+    transition: all 0.3s ease;
+}
+
+.zone-hover {
+    filter: brightness(1.2) drop-shadow(0 0 10px rgba(99, 102, 241, 0.5));
+}
+
+.zone-hover path,
+.zone-hover rect {
+    stroke-width: 5;
+    animation: border-pulse 1s ease-in-out infinite;
+}
+
+@keyframes border-pulse {
+
+    0%,
+    100% {
+        stroke-opacity: 0.6;
+    }
+
+    50% {
+        stroke-opacity: 1;
+    }
+}
+
+/* Full Badge Pulse */
+.pulse-badge {
+    animation: pulse-red 1.5s ease-in-out infinite;
+}
+
+@keyframes pulse-red {
+
+    0%,
+    100% {
+        opacity: 1;
+        transform: scale(1);
+    }
+
+    50% {
+        opacity: 0.7;
+        transform: scale(1.05);
+    }
+}
+
+/* Truck Badge Hover */
+.truck-asset:hover .truck-badge rect {
+    fill: rgba(15, 23, 42, 1);
+}
+
+.truck-asset:hover .truck-badge text {
+    font-size: 9px;
+}
+
+/* Grid Fade In */
+.isometric-grid {
+    animation: grid-fade-in 1s ease-out;
+}
+
+@keyframes grid-fade-in {
+    from {
+        opacity: 0;
+    }
+
+    to {
+        opacity: 0.15;
+    }
+}
+
+/* Responsive Adjustments */
+@media (max-width: 1024px) {
+    .truck-asset {
+        transform: scale(0.9);
+    }
+
+    .truck-asset:hover {
+        transform: scale(1);
+    }
+}
+
+@media (max-width: 768px) {
+    .truck-asset {
+        transform: scale(0.8);
+    }
+
+    .truck-asset:hover {
+        transform: scale(0.9);
+    }
+
+    .zone-gate text,
+    .zone-weighbridge text,
+    .zone-queue text,
+    .zone-ramp text,
+    .zone-exit text {
+        font-size: 10px;
+    }
+}
+
+/* Tooltip Container */
+.truck-tooltip {
+    position: absolute;
+    background: rgba(15, 23, 42, 0.95);
+    color: white;
+    padding: 12px 16px;
+    border-radius: 8px;
+    font-size: 12px;
+    pointer-events: none;
+    z-index: 1000;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5);
+    border: 1px solid rgba(148, 163, 184, 0.3);
+    min-width: 180px;
+    animation: tooltip-fade-in 0.2s ease-out;
+}
+
+@keyframes tooltip-fade-in {
+    from {
+        opacity: 0;
+        transform: translateY(-8px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.truck-tooltip .tooltip-header {
+    font-weight: bold;
+    font-size: 14px;
+    margin-bottom: 8px;
+    color: #60a5fa;
+    font-family: monospace;
+}
+
+.truck-tooltip .tooltip-row {
+    display: flex;
+    justify-content: space-between;
+    margin: 4px 0;
+    font-size: 11px;
+}
+
+.truck-tooltip .tooltip-label {
+    color: #94a3b8;
+}
+
+.truck-tooltip .tooltip-value {
+    color: #e2e8f0;
+    font-weight: 600;
+}
+
+/* Canvas Container */
+.yard-canvas-container {
+    position: relative;
+    width: 100%;
+    height: 600px;
+    min-height: 500px;
+    background: linear-gradient(to bottom, #0f172a, #1e293b);
+    border-radius: 16px;
+    overflow: hidden;
+    box-shadow:
+        0 10px 40px rgba(0, 0, 0, 0.3),
+        inset 0 1px 2px rgba(255, 255, 255, 0.05);
+}
+
+/* Road/Path Effects */
+.yard-road {
+    fill: none;
+    stroke: #475569;
+    stroke-width: 3;
+    stroke-dasharray: 10, 5;
+    opacity: 0.3;
+    animation: road-dash 30s linear infinite;
+}
+
+@keyframes road-dash {
+    to {
+        stroke-dashoffset: -100;
+    }
+}
+
+/* Zone Labels Enhancement */
+.zone-label-bg {
+    fill: rgba(15, 23, 42, 0.9);
+    rx: 6;
+}
+
+.zone-label-text {
+    fill: white;
+    font-family: 'Inter', 'Segoe UI', sans-serif;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+/* Capacity Indicator */
+.capacity-indicator {
+    transition: all 0.3s ease;
+}
+
+.capacity-indicator.warning {
+    fill: #f59e0b;
+    animation: warning-blink 2s ease-in-out infinite;
+}
+
+.capacity-indicator.danger {
+    fill: #dc2626;
+    animation: danger-blink 1s ease-in-out infinite;
+}
+
+@keyframes warning-blink {
+
+    0%,
+    100% {
+        opacity: 1;
+    }
+
+    50% {
+        opacity: 0.6;
+    }
+}
+
+@keyframes danger-blink {
+
+    0%,
+    100% {
+        opacity: 1;
+    }
+
+    50% {
+        opacity: 0.4;
+    }
+}
+
+/* Slot Markers */
+.slot-marker {
+    fill: #10b981;
+    opacity: 0.3;
+    transition: all 0.3s ease;
+}
+
+.slot-marker.occupied {
+    fill: #dc2626;
+    opacity: 0.6;
+}
+
+/* SVG Text Styling */
+text {
+    user-select: none;
+    -webkit-user-select: none;
+}
+
+/* Accessibility */
+.truck-asset:focus,
+.zone-gate:focus,
+.zone-weighbridge:focus,
+.zone-queue:focus,
+.zone-ramp:focus,
+.zone-exit:focus {
+    outline: 2px solid #60a5fa;
+    outline-offset: 4px;
+}
