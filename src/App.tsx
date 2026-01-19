@@ -12,7 +12,7 @@ import {
 import html2canvas from 'html2canvas';
 import jsPDF from 'jspdf';
 
-import type { Ticket, Announcement, DashboardStats, VehicleStat, YardTruck, YardStatus, WeatherLog, AfdelingBenchmark, BenchmarkTrendData, HarvestEntry, IncomingTruck, HourlyForecast } from './types';
+import type { Ticket, Announcement, DashboardStats, VehicleStat, YardTruck, YardStatus, WeatherLog, AfdelingBenchmark, BenchmarkTrendData, HarvestEntry, IncomingTruck, HourlyForecast, PriceHistory, DeductionRule } from './types';
 import { generateGeminiInsight } from './services/geminiService';
 import { fetchTickets, fetchAnnouncements, addAnnouncement, deleteAnnouncement, uploadTicketsBulk, fetchWeatherLogs, fetchHourlyForecasts, triggerWeatherSync } from './services/dataService';
 import { supabase, isSupabaseConfigured } from './supabaseClient';
@@ -30,6 +30,8 @@ import PerbandinganView from './components/views/PerbandinganView';
 import BenchmarkingView from './components/views/BenchmarkingView';
 import MasterLokasiView from './components/views/MasterLokasiView';
 import HarvestEntryView from './components/views/HarvestEntryView'; // New View
+import MasterHargaView from './components/views/MasterHargaView'; // Feature #24
+import AnalisisFaktorView from './components/views/AnalisisFaktorView'; // Feature #18
 import type { PeriodStats } from './types';
 
 const BASE_DAILY_TARGET_KG = 40000; // 40 Ton
@@ -40,7 +42,7 @@ export default function App() {
   const [announcements, setAnnouncements] = useState<Announcement[]>([]);
 
   // UI State
-  const [activeView, setActiveView] = useState<'dashboard' | 'armada' | 'prediksi' | 'kualitas' | 'operasional' | 'perbandingan' | 'benchmark' | 'master_lokasi' | 'harvest_entry'>('dashboard');
+  const [activeView, setActiveView] = useState<'dashboard' | 'armada' | 'prediksi' | 'analisis_faktor' | 'kualitas' | 'operasional' | 'perbandingan' | 'benchmark' | 'master_lokasi' | 'master_harga' | 'harvest_entry'>('dashboard');
   const [loadingData, setLoadingData] = useState(true);
   const [isDarkMode, setIsDarkMode] = useState(false);
   const [selectedTicket, setSelectedTicket] = useState<Ticket | null>(null);
@@ -58,6 +60,16 @@ export default function App() {
   const [isGeneratingPDF, setIsGeneratingPDF] = useState(false); // Feature: PDF Report
   const [incomingTrucks, setIncomingTrucks] = useState<IncomingTruck[]>([]); // Feature #37: ETA Tracker
   const [hourlyForecasts, setHourlyForecasts] = useState<HourlyForecast[]>([]); // Feature #38 Enhanced: BMKG Hourly Forecast
+
+  // Feature #24: Master Price & Deductions
+  const [priceHistory, setPriceHistory] = useState<PriceHistory[]>([
+    { id: '1', effective_date: '2025-01-01', price: 2550, created_by: 'System', notes: 'Harga awal tahun' }
+  ]);
+  const [deductionRules, setDeductionRules] = useState<DeductionRule[]>([
+    { id: '1', name: 'Potongan Air', type: 'percentage', value: 2.5, is_active: true, notes: 'Jika basah hujan' },
+    { id: '2', name: 'Potongan Sampah', type: 'percentage', value: 1.0, is_active: true, notes: 'Standard' },
+    { id: '3', name: 'Tangkai Panjang', type: 'fixed_value', value: 50, is_active: true, notes: 'Per janjang panjang' }
+  ]);
 
   // Search & Filter
   const [searchQuery, setSearchQuery] = useState('');
@@ -1226,7 +1238,17 @@ Gunakan Bahasa Indonesia formal dan ringkas dengan poin-poin.`;
     };
     setHarvestEntries(prev => [newEntry, ...prev]);
     alert("Tiket Panen Berhasil Disubmit! Data akan masuk ke sistem antrian.");
+    alert("Tiket Panen Berhasil Disubmit! Data akan masuk ke sistem antrian.");
   };
+
+  // Feature #24 Handlers
+  const handleAddPrice = (newPrice: PriceHistory) => {
+    setPriceHistory(prev => [newPrice, ...prev].sort((a, b) => b.effective_date.localeCompare(a.effective_date)));
+    setTbsPrice(newPrice.price); // Update current price
+  };
+  const handleAddRule = (newRule: DeductionRule) => setDeductionRules(prev => [...prev, newRule]);
+
+  const handleDeleteRule = (id: string) => setDeductionRules(prev => prev.filter(r => r.id !== id));
 
   const renderContent = () => {
     if (loadingData && data.length === 0) {
@@ -1287,6 +1309,17 @@ Gunakan Bahasa Indonesia formal dan ringkas dengan poin-poin.`;
         return <ArmadaView vehicleStats={vehicleStats} theme={theme} isDarkMode={isDarkMode} setSelectedVehicle={setSelectedVehicle} formatNumber={formatNumber} formatIndoDate={formatIndoDate} />;
       case 'prediksi':
         return <PrediksiView forecastData={forecastData} theme={theme} isDarkMode={isDarkMode} formatNumber={formatNumber} weatherLogs={weatherLogs} forecastInsight={forecastInsight} setForecastInsight={setForecastInsight} handleGenerateForecastInsight={handleGenerateForecastInsight} isGeneratingInsight={isGeneratingInsight} />;
+      case 'analisis_faktor':
+        return (
+          <AnalisisFaktorView
+            data={data}
+            weatherLogs={weatherLogs}
+            priceHistory={priceHistory}
+            theme={theme}
+            isDarkMode={isDarkMode}
+            formatNumber={formatNumber}
+          />
+        );
       case 'kualitas':
         return <KualitasView qualityAnalytics={qualityAnalytics} theme={theme} isDarkMode={isDarkMode} formatNumber={formatNumber} setSelectedLocation={setSelectedLocation} />;
       case 'operasional':
@@ -1304,6 +1337,18 @@ Gunakan Bahasa Indonesia formal dan ringkas dengan poin-poin.`;
             onSubmit={handleHarvestSubmit}
             recentEntries={harvestEntries}
             avgBJRMap={locationAvgBJR}
+          />
+        );
+      case 'master_harga':
+        return (
+          <MasterHargaView
+            priceHistory={priceHistory}
+            deductionRules={deductionRules}
+            onAddPrice={handleAddPrice}
+            onAddRule={handleAddRule}
+            onDeleteRule={handleDeleteRule}
+            theme={theme}
+            formatCurrency={formatCurrency}
           />
         );
       default:
@@ -1398,6 +1443,12 @@ Gunakan Bahasa Indonesia formal dan ringkas dengan poin-poin.`;
                   <BrainCircuit size={14} /> Prediksi
                 </button>
                 <button
+                  onClick={() => setActiveView('analisis_faktor')}
+                  className={`px-4 py-1.5 rounded-md text-xs font-bold transition-all flex items-center gap-2 ${activeView === 'analisis_faktor' ? 'bg-white text-emerald-800 shadow' : 'text-white/70 hover:text-white'}`}
+                >
+                  <TrendingUp size={14} /> Faktor
+                </button>
+                <button
                   onClick={() => setActiveView('kualitas')}
                   className={`px-4 py-1.5 rounded-md text-xs font-bold transition-all flex items-center gap-2 ${activeView === 'kualitas' ? 'bg-white text-emerald-800 shadow' : 'text-white/70 hover:text-white'}`}
                 >
@@ -1427,6 +1478,12 @@ Gunakan Bahasa Indonesia formal dan ringkas dengan poin-poin.`;
                 >
                   <MapPin size={14} /> Master Lokasi
                 </button>
+                <button
+                  onClick={() => setActiveView('master_harga')}
+                  className={`px-4 py-1.5 rounded-md text-xs font-bold transition-all flex items-center gap-2 ${activeView === 'master_harga' ? 'bg-white text-emerald-800 shadow' : 'text-white/70 hover:text-white'}`}
+                >
+                  <span className="font-serif italic font-black">Rp</span> Harga
+                </button>
               </div>
 
               <div className="flex items-center gap-2 md:gap-3">
@@ -1439,6 +1496,13 @@ Gunakan Bahasa Indonesia formal dan ringkas dengan poin-poin.`;
                 </button>
                 <button onClick={() => setIsDarkMode(!isDarkMode)} className="p-2 rounded-full hover:bg-white/10 transition-colors">
                   {isDarkMode ? <Sun size={18} /> : <Moon size={18} />}
+                </button>
+                <button
+                  onClick={() => setActiveView('harvest_entry')}
+                  className="p-2 rounded-full hover:bg-white/10 transition-colors text-yellow-300"
+                  title="Mode Mandor (Mobile)"
+                >
+                  <Truck size={18} />
                 </button>
                 <Link to="/admin" className="flex items-center gap-2 px-3 py-1 md:px-4 md:py-1.5 rounded-full text-[10px] md:text-xs font-bold transition-all bg-emerald-600 hover:bg-emerald-500">
                   ADMIN

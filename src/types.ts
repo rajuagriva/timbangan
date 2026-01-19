@@ -16,9 +16,25 @@ export interface Announcement {
 }
 
 export interface ChartDataPoints {
-  trend: { date: string; displayDate: string; total: number }[];
+  trend: {
+    date: string;
+    displayDate: string;
+    total: number;
+    predicted?: number;
+    lowerBound?: number;
+    upperBound?: number;
+  }[];
   locations: { name: string; fullName: string; value: number }[];
   peakHours: { hour: string; count: number }[];
+}
+
+// Feature #Prediction: Advanced Prediction Types
+export type PredictionModelType = 'moving_average' | 'linear_reg' | 'exponential' | 'hybrid';
+
+export interface PredictionParams {
+  weatherOverride?: 'Cerah' | 'Berawan' | 'Hujan Ringan' | 'Hujan Deras';
+  weatherImpactFactor?: number; // e.g. 0.8 for 20% reduction
+  isHoliday?: boolean;
 }
 
 export interface DashboardStats {
@@ -268,4 +284,22 @@ export interface WeatherAlert {
   condition: string;
   date: string;
   recommendations: string[];
+}
+
+// Feature #24: Master Price & Deduction Rules
+export interface PriceHistory {
+  id: string;
+  effective_date: string; // YYYY-MM-DD
+  price: number; // Rp/kg
+  created_by?: string;
+  notes?: string;
+}
+
+export interface DeductionRule {
+  id: string;
+  name: string; // e.g., "Air", "Sampah", "Tangkai Panjang"
+  type: 'percentage' | 'fixed_value'; // % or kg
+  value: number;
+  is_active: boolean;
+  notes?: string;
 }

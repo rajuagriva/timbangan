@@ -104,25 +104,55 @@ const AdminPage: React.FC = () => {
                 const lines = text.split('\n').filter(line => line.trim());
 
                 if (lines.length < 2) {
-                    throw new Error('File CSV kosong atau tidak valid');
+                    throw new Error('File CSV kosong atau tidak valid (hanya header?)');
                 }
 
-                const headers = lines[0].split(',').map(h => h.trim().toLowerCase());
+                // Detect delimiter: check if semi-colon is present in header, otherwise default to comma
+                const headerLine = lines[0];
+                const delimiter = headerLine.includes(';') ? ';' : ',';
+
+                const headers = headerLine.split(delimiter).map(h => h.trim().toLowerCase());
                 const tickets: Ticket[] = [];
 
+                const normalizeDate = (dateStr: string) => {
+                    if (!dateStr) return '';
+                    const clean = dateStr.trim();
+                    // Handle DD/MM/YYYY which causes "out of range" error in DB
+                    if (clean.includes('/')) {
+                        const parts = clean.split('/');
+                        if (parts.length === 3) {
+                            // If first part is 4 digits, assume YYYY/MM/DD
+                            if (parts[0].length === 4) return `${parts[0]}-${parts[1]}-${parts[2]}`;
+                            // Assume DD/MM/YYYY -> convert to YYYY-MM-DD
+                            return `${parts[2]}-${parts[1].padStart(2, '0')}-${parts[0].padStart(2, '0')}`;
+                        }
+                    }
+                    return clean;
+                };
+
                 for (let i = 1; i < lines.length; i++) {
-                    const values = lines[i].split(',').map(v => v.trim());
-                    if (values.length < headers.length) continue;
+                    const values = lines[i].split(delimiter).map(v => v.trim());
+                    // Allow for some leniency, but we need at least some data
+                    if (values.length < 2) continue;
 
                     const row: any = {};
                     headers.forEach((h, idx) => {
-                        row[h] = values[idx];
+                        if (idx < values.length) {
+                            row[h] = values[idx];
+                        }
                     });
+
+                    // Skip empty rows that might have slipped through
+                    if (!row.tanggal && !row.date && !row.nopol) continue;
+
+                    // Generate a truly unique ID to avoid overwriting existing data
+                    // Format: Tiket.{Timestamp}.{Index}
+                    const generatedId = `Tiket.${Date.now()}.${String(i).padStart(4, '0')}`;
 
                     // Map to Ticket structure
                     tickets.push({
-                        id: row.id || row.no_tiket || `Tiket.${String(i).padStart(4, '0')}`,
-                        tanggal: row.tanggal || row.date || '',
+                        id: row.id || row.no_tiket || generatedId,
+                        tanggal: normalizeDate(row.tanggal || row.date || ''),
                         jam_masuk: row.jam_masuk || row.waktu_masuk || '',
                         jam_keluar: row.jam_keluar || row.waktu_keluar || '',
                         nopol: row.nopol || row.no_polisi || '',
@@ -130,6 +160,10 @@ const AdminPage: React.FC = () => {
                         janjang: parseInt(row.janjang || row.jumlah_janjang || '0', 10),
                         lokasi: row.lokasi || row.asal || row.afdeling || ''
                     });
+                }
+
+                if (tickets.length === 0) {
+                    throw new Error(`Tidak ada data tiket yang valid ditemukan. Periksa format CSV (Delimiter terdeteksi: "${delimiter}")`);
                 }
 
                 setUploadMessage(`Mengupload ${tickets.length} tiket...`);
@@ -148,6 +182,7 @@ const AdminPage: React.FC = () => {
                 }, 3000);
 
             } catch (error: any) {
+                console.error('Upload error:', error);
                 setUploadStatus('error');
                 setUploadMessage(error.message || 'Gagal memproses file');
                 setTimeout(() => {
@@ -224,8 +259,8 @@ const AdminPage: React.FC = () => {
                         <div className="flex items-center gap-3">
                             {/* Connection Status */}
                             <div className={`px-3 py-1.5 rounded-full text-xs font-bold ${isSupabaseConnected
-                                    ? 'bg-emerald-500/20 text-emerald-100'
-                                    : 'bg-red-500/20 text-red-100'
+                                ? 'bg-emerald-500/20 text-emerald-100'
+                                : 'bg-red-500/20 text-red-100'
                                 }`}>
                                 {isSupabaseConnected ? '✅ Database Connected' : '⚠️ Demo Mode'}
                             </div>
